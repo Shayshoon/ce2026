@@ -4,7 +4,7 @@
 # Add your C source files here:
 PROJECT_C_SOURCES = test.c shake256.c
 # Add your assembly source files here:
-PROJECT_ASM_SOURCES = 
+PROJECT_ASM_SOURCES = keccakf1600.S
 
 # Convert sources to object file paths
 PROJECT_C_OBJS = $(addprefix obj/,$(PROJECT_C_SOURCES:.c=.c.o))

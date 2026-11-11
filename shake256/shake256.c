@@ -71,6 +71,9 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
  * Arguments:   - uint64_t *state: pointer to input/output Keccak state
  **************************************************/
 void KeccakF1600_StatePermute(uint64_t *state) {
+    keccakf1600(state);
+    return;	
+    
     int round;
 
     uint64_t Aba, Abe, Abi, Abo, Abu;

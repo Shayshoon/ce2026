@@ -6,6 +6,8 @@
 
 #define SHAKE256_RATE 136
 
+extern int keccakf1600(uint64_t *state);
+
 void shake256_absorb(uint64_t state[25], const uint8_t *input, size_t inlen);
 
 void shake256_squeezeblocks(uint8_t *output, size_t nblocks, uint64_t state[25]);
