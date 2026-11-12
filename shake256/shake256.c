@@ -63,6 +63,69 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
     0x0000000080000001ULL, 0x8000000080008008ULL
 };
 
+
+void to_bit_interleaved(uint64_t *state, uint32_t *interleaved_state) {
+    uint32_t lo, hi, temp;
+
+    for (int i = 0; i < 25; i++) {
+        uint64_t lane = state[i];
+
+        // Interleave low 32 bits of lane
+        uint32_t lo = (uint32_t)lane;
+        temp = (lo ^ (lo >> 1)) & 0x22222222UL;
+        lo = lo ^ temp ^ (temp << 1);
+        temp = (lo ^ (lo >> 2)) & 0x0C0C0C0CUL;
+        lo = lo ^ temp ^ (temp << 2);
+        temp = (lo ^ (lo >> 4)) & 0x00F000F0UL;
+        lo = lo ^ temp ^ (temp << 4);
+        temp = (lo ^ (lo >> 8)) & 0x0000FF00UL;
+        lo = lo ^ temp ^ (temp << 8);
+
+        // Interleave high 32 bits of lane
+        uint32_t hi = (uint32_t)(lane >> 32);
+        temp = (hi ^ (hi >> 1)) & 0x22222222UL;
+        hi = hi ^ temp ^ (temp << 1);
+        temp = (hi ^ (hi >> 2)) & 0x0C0C0C0CUL;
+        hi = hi ^ temp ^ (temp << 2);
+        temp = (hi ^ (hi >> 4)) & 0x00F000F0UL;
+        hi = hi ^ temp ^ (temp << 4);
+        temp = (hi ^ (hi >> 8)) & 0x0000FF00UL;
+        hi = hi ^ temp ^ (temp << 8);
+
+        interleaved_state[2 * i] = (lo & 0x0000FFFF) | (hi << 16);
+        interleaved_state[2 * i + 1] = (lo >> 16) | (hi & 0xFFFF0000);
+    }
+}
+
+void from_bit_interleaved(uint32_t *interleaved_state, uint64_t *state) {
+    for (int i = 0; i < 25; i++) {
+        uint32_t lo = interleaved_state[2 * i];
+        uint32_t hi = interleaved_state[2 * i + 1];
+
+        // recover low 32 bits
+        uint32_t temp = (lo ^ (lo >> 8)) & 0x0000FF00UL;
+        lo = lo ^ temp ^ (temp << 8);
+        temp = (lo ^ (lo >> 4)) & 0x00F000F0UL;
+        lo = lo ^ temp ^ (temp << 4);
+        temp = (lo ^ (lo >> 2)) & 0x0C0C0C0CUL;
+        lo = lo ^ temp ^ (temp << 2);
+        temp = (lo ^ (lo >> 1)) & 0x22222222UL;
+        lo = lo ^ temp ^ (temp << 1);
+
+        // recover high 32 bits
+        temp = (hi ^ (hi >> 8)) & 0x0000FF00UL;
+        hi = hi ^ temp ^ (temp << 8);
+        temp = (hi ^ (hi >> 4)) & 0x00F000F0UL;
+        hi = hi ^ temp ^ (temp << 4);
+        temp = (hi ^ (hi >> 2)) & 0x0C0C0C0CUL;
+        hi = hi ^ temp ^ (temp << 2);
+        temp = (hi ^ (hi >> 1)) & 0x22222222UL;
+        hi = hi ^ temp ^ (temp << 1);
+
+        state[i] = ((uint64_t)hi << 32) | lo;
+    }
+}
+
 /*************************************************
  * Name:        KeccakF1600_StatePermute
  *
@@ -71,7 +134,12 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
  * Arguments:   - uint64_t *state: pointer to input/output Keccak state
  **************************************************/
 void KeccakF1600_StatePermute(uint64_t *state) {
-    keccakf1600(state);
+    uint32_t interleaved_state[50];
+
+    to_bit_interleaved(state, interleaved_state);
+    keccakf1600(interleaved_state);
+    from_bit_interleaved(interleaved_state, state);
+
     return;	
     
     int round;
