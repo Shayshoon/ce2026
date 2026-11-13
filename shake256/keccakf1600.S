@@ -1,8 +1,66 @@
 .syntax unified
 .global keccakf1600
+.thumb
 .text
 
-// void keccakf1600(uint64_t *state);
+.align 2
+// access with:
+// ldr rX, [r1], #4
+// this loads word at r1 to rX and increments r1 by 4 bytes (next constant, accounting for bit interleaving)
+round_constants:
+    .word 0x00000001
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000089
+    .word 0x00000000
+    .word 0x8000008b
+    .word 0x00000000
+    .word 0x80008080
+    .word 0x00000001
+    .word 0x0000008b
+    .word 0x00000001
+    .word 0x00008000
+    .word 0x00000001
+    .word 0x80008088
+    .word 0x00000001
+    .word 0x80000082
+    .word 0x00000000
+    .word 0x0000000b
+    .word 0x00000000
+    .word 0x0000000a
+    .word 0x00000001
+    .word 0x00008082
+    .word 0x00000000
+    .word 0x00008003
+    .word 0x00000001
+    .word 0x0000808b
+    .word 0x00000001
+    .word 0x8000000b
+    .word 0x00000001
+    .word 0x8000008a
+    .word 0x00000001
+    .word 0x80000081
+    .word 0x00000000
+    .word 0x80000081
+    .word 0x00000000
+    .word 0x80000008
+    .word 0x00000000
+    .word 0x00000083
+    .word 0x00000000
+    .word 0x80008003
+    .word 0x00000001
+    .word 0x80008088
+    .word 0x00000000
+    .word 0x80000088
+    .word 0x00000001
+    .word 0x00008000
+    .word 0x00000000
+    .word 0x80008082
+
+.align 2
+.thumb_func
+.type keccakf1600 %function
+// void keccakf1600(uint32_t *state);
 keccakf1600:
 
     push {r4-r11, lr} // preserve callee saved registers
@@ -127,7 +185,8 @@ round_start:
         // now that were done computing the parities
         // we can pop the even parities and calculate
         // the mixing terms
-        pop {r8-r12}
+        pop {r9-r12}
+	pop {r8}
         push {r3-r7} // save odd column parities
         
         ldr r4, [sp, #0] 
@@ -137,11 +196,11 @@ round_start:
         ldr r3, [sp, #16]
         
         // calculate odd mixing terms
-        eor r3, r3, r9
-        eor r4, r4, r10
-        eor r5, r5, r11
-        eor r6, r6, r12
-        eor r7, r7, r8
+        eor r3, r3, r10
+        eor r4, r4, r11
+        eor r5, r5, r12
+        eor r6, r6, r8
+        eor r7, r7, r9
 
         // save odd mixing terms
         push {r3-r7}
@@ -159,11 +218,11 @@ round_start:
         ror r6, r6, #31
         ror r7, r7, #31
 
-        eor r8, r8, r5
-        eor r9, r9, r6
-        eor r10, r10, r7
-        eor r11, r11, r3
-        eor r12, r12, r4
+        eor r8, r8, r4
+        eor r9, r9, r5
+        eor r10, r10, r6
+        eor r11, r11, r7
+        eor r12, r12, r3
 
         // we calculated all mixing terms. we currently have
         // in r8-r12 the even terms. in the stack we have the odd
@@ -600,6 +659,7 @@ round_start:
         // we can execute it seperately, iteratively over all rows.
         // first we load the even bits of the first row
 
+       
         ldr r3,  [r0, #0]
         ldr r4,  [r0, #8]
         ldr r5,  [r0, #16]
@@ -609,19 +669,19 @@ round_start:
         mov r8, r3      // save r3 and r4 to calculate r6 and r7
         mov r9, r4
 
-        bic r10, r4, r5 // r10 = r4 and (not r5)
+        bic r10, r5, r4 // r10 = r4 and (not r5)
         eor r3, r3, r10 // r3 = r3 xor r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #0]
@@ -630,7 +690,7 @@ round_start:
         str r6,  [r0, #24]
         str r7,  [r0, #32]
 
-        // and now the odd bits of the first row
+        // and now the odd bits
 
         ldr r3,  [r0, #4]
         ldr r4,  [r0, #12]
@@ -641,19 +701,19 @@ round_start:
         mov r8, r3
         mov r9, r4
 
-        bic r10, r4, r5
+        bic r10, r5, r4
         eor r3, r3, r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #4]
@@ -661,8 +721,6 @@ round_start:
         str r5,  [r0, #20]
         str r6,  [r0, #28]
         str r7,  [r0, #36]
-
-        // second row
 
         ldr r3,  [r0, #40]
         ldr r4,  [r0, #48]
@@ -673,19 +731,19 @@ round_start:
         mov r8, r3      // save r3 and r4 to calculate r6 and r7
         mov r9, r4
 
-        bic r10, r4, r5 // r10 = r4 and (not r5)
+        bic r10, r5, r4 // r10 = r4 and (not r5)
         eor r3, r3, r10 // r3 = r3 xor r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #40]
@@ -705,19 +763,19 @@ round_start:
         mov r8, r3
         mov r9, r4
 
-        bic r10, r4, r5
+        bic r10, r5, r4
         eor r3, r3, r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #44]
@@ -725,8 +783,6 @@ round_start:
         str r5,  [r0, #60]
         str r6,  [r0, #68]
         str r7,  [r0, #76]
-
-        // third row
 
         ldr r3,  [r0, #80]
         ldr r4,  [r0, #88]
@@ -737,19 +793,19 @@ round_start:
         mov r8, r3      // save r3 and r4 to calculate r6 and r7
         mov r9, r4
 
-        bic r10, r4, r5 // r10 = r4 and (not r5)
+        bic r10, r5, r4 // r10 = r4 and (not r5)
         eor r3, r3, r10 // r3 = r3 xor r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #80]
@@ -769,19 +825,19 @@ round_start:
         mov r8, r3
         mov r9, r4
 
-        bic r10, r4, r5
+        bic r10, r5, r4
         eor r3, r3, r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #84]
@@ -789,8 +845,6 @@ round_start:
         str r5,  [r0, #100]
         str r6,  [r0, #108]
         str r7,  [r0, #116]
-
-        // fourth row
 
         ldr r3,  [r0, #120]
         ldr r4,  [r0, #128]
@@ -801,19 +855,19 @@ round_start:
         mov r8, r3      // save r3 and r4 to calculate r6 and r7
         mov r9, r4
 
-        bic r10, r4, r5 // r10 = r4 and (not r5)
+        bic r10, r5, r4 // r10 = r4 and (not r5)
         eor r3, r3, r10 // r3 = r3 xor r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #120]
@@ -833,19 +887,19 @@ round_start:
         mov r8, r3
         mov r9, r4
 
-        bic r10, r4, r5
+        bic r10, r5, r4
         eor r3, r3, r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #124]
@@ -853,8 +907,6 @@ round_start:
         str r5,  [r0, #140]
         str r6,  [r0, #148]
         str r7,  [r0, #156]
-
-        // fifth and last row
 
         ldr r3,  [r0, #160]
         ldr r4,  [r0, #168]
@@ -865,19 +917,19 @@ round_start:
         mov r8, r3      // save r3 and r4 to calculate r6 and r7
         mov r9, r4
 
-        bic r10, r4, r5 // r10 = r4 and (not r5)
+        bic r10, r5, r4 // r10 = r4 and (not r5)
         eor r3, r3, r10 // r3 = r3 xor r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #160]
@@ -897,19 +949,19 @@ round_start:
         mov r8, r3
         mov r9, r4
 
-        bic r10, r4, r5
+        bic r10, r5, r4
         eor r3, r3, r10
 
-        bic r10, r5, r6
+        bic r10, r6, r5
         eor r4, r4, r10
 
-        bic r10, r6, r7
+        bic r10, r7, r6
         eor r5, r5, r10
 
-        bic r10, r7, r8
+        bic r10, r8, r7
         eor r6, r6, r10
 
-        bic r10, r8, r9
+        bic r10, r9, r8
         eor r7, r7, r10
 
         str r3,  [r0, #164]
@@ -930,7 +982,7 @@ round_start:
         eor r6, r6, r4
 
         str r5, [r0, #0]
-        ldr r6, [r0, #4]
+        str r6, [r0, #4]
         
         // and there you go we finished the round :)
         
@@ -940,59 +992,4 @@ round_end:
 
     pop {r4-r11, lr}  // recover callee saved registers
     bx lr                 // Return to the C caller
-
-.section .rodata
-.align 2
-// access with:
-// ldr rX, [r1], #4
-// this loads word at r1 to rX and increments r1 by 4 bytes (next constant, accounting for bit interleaving)
-round_constants:
-    .word 0x00000001
-    .word 0x00000000
-    .word 0x00000000
-    .word 0x00000089
-    .word 0x00000000
-    .word 0x8000008b
-    .word 0x00000000
-    .word 0x80008080
-    .word 0x00000001
-    .word 0x0000008b
-    .word 0x00000001
-    .word 0x00008000
-    .word 0x00000001
-    .word 0x80008088
-    .word 0x00000001
-    .word 0x80000082
-    .word 0x00000000
-    .word 0x0000000b
-    .word 0x00000000
-    .word 0x0000000a
-    .word 0x00000001
-    .word 0x00008082
-    .word 0x00000000
-    .word 0x00008003
-    .word 0x00000001
-    .word 0x0000808b
-    .word 0x00000001
-    .word 0x8000000b
-    .word 0x00000001
-    .word 0x8000008a
-    .word 0x00000001
-    .word 0x80000081
-    .word 0x00000000
-    .word 0x80000081
-    .word 0x00000000
-    .word 0x80000008
-    .word 0x00000000
-    .word 0x00000083
-    .word 0x00000000
-    .word 0x80008003
-    .word 0x00000001
-    .word 0x80008088
-    .word 0x00000000
-    .word 0x80000088
-    .word 0x00000001
-    .word 0x00008000
-    .word 0x00000000
-    .word 0x80008082
 
