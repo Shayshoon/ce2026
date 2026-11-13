@@ -64,14 +64,14 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
 };
 
 
-void to_bit_interleaved(uint64_t *state, uint32_t *interleaved_state) {
+static void to_bit_interleaved(uint64_t *state, uint32_t *interleaved_state) {
     uint32_t lo, hi, temp;
 
     for (int i = 0; i < 25; i++) {
         uint64_t lane = state[i];
 
         // Interleave low 32 bits of lane
-        uint32_t lo = (uint32_t)lane;
+        lo = (uint32_t)lane;
         temp = (lo ^ (lo >> 1)) & 0x22222222UL;
         lo = lo ^ temp ^ (temp << 1);
         temp = (lo ^ (lo >> 2)) & 0x0C0C0C0CUL;
@@ -82,7 +82,7 @@ void to_bit_interleaved(uint64_t *state, uint32_t *interleaved_state) {
         lo = lo ^ temp ^ (temp << 8);
 
         // Interleave high 32 bits of lane
-        uint32_t hi = (uint32_t)(lane >> 32);
+        hi = (uint32_t)(lane >> 32);
         temp = (hi ^ (hi >> 1)) & 0x22222222UL;
         hi = hi ^ temp ^ (temp << 1);
         temp = (hi ^ (hi >> 2)) & 0x0C0C0C0CUL;
@@ -97,7 +97,7 @@ void to_bit_interleaved(uint64_t *state, uint32_t *interleaved_state) {
     }
 }
 
-void from_bit_interleaved(uint32_t *interleaved_state, uint64_t *state) {
+static void from_bit_interleaved(uint32_t *interleaved_state, uint64_t *state) {
     for (int i = 0; i < 25; i++) {
         uint32_t lo = interleaved_state[2 * i];
         uint32_t hi = interleaved_state[2 * i + 1];
